@@ -28,7 +28,7 @@ const DashboardView = forwardRef((props, ref) => {
 
   useEffect(() => {
     fetchData();
-    const id = setInterval(() => fetchData(), 5000); // auto refresh cada 5s
+    const id = setInterval(() => fetchData(), 60000); // auto refresh cada 60s
     return () => clearInterval(id);
   }, [showAll]);
 
@@ -94,14 +94,29 @@ const DashboardView = forwardRef((props, ref) => {
                         color: "#e2e8f0",
                       }}
                       labelFormatter={(v) => `timestamp: ${v}`}
-                      formatter={(value) => [(value as number).toFixed(2), key]}
+                      formatter={(value, name, props) => [
+                        (value as number).toFixed(2),
+                        props?.payload?.status ? `${key} (${props.payload.status})` : key,
+                      ]}
                     />
                     <Line
                       type="monotone"
                       dataKey={key}
                       stroke="#22d3ee"
                       strokeWidth={2}
-                      dot={false}
+                      dot={(props) => {
+                        const isAnomaly = (props.payload?.status || "").toLowerCase().includes("anom");
+                        return (
+                          <circle
+                            key={`dot-${key}-${props.index}`}
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={isAnomaly ? 3.5 : 2}
+                            fill={isAnomaly ? "#f59e0b" : "#22d3ee"}
+                            stroke="none"
+                          />
+                        );
+                      }}
                     />
                   </LineChart>
                 </ResponsiveContainer>

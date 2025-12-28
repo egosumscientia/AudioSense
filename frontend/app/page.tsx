@@ -1,30 +1,59 @@
 "use client";
-import { useState, useRef } from "react"; //  agrega useRef
+import { useState, useRef } from "react";
 import AudioUploader from "./components/AudioUploader";
 import ResultCard from "./components/ResultCard";
 import ChartView from "./components/ChartView";
 import DashboardView from "./components/DashboardView";
+import ModelStatus from "./components/ModelStatus";
 
 export default function HomePage() {
   const [data, setData] = useState<any>(null);
   const [devMode, setDevMode] = useState(false);
-  const [message, setMessage] = useState("");
-  const dashboardRef = useRef<any>(null); //  nueva referencia
+  const [toast, setToast] = useState<{ text: string; type?: "info" | "error" } | null>(null);
+  const toastTimer = useRef<NodeJS.Timeout | null>(null);
+  const [modelRefresh, setModelRefresh] = useState(0);
+  const [windowSize, setWindowSize] = useState<number>(300);
+  const dashboardRef = useRef<any>(null);
 
   const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  const showToast = (text: string, type: "info" | "error" = "info") => {
+    setToast({ text, type });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  };
 
   const handlePopulate = async () => {
     const res = await fetch(`${api}/v2/generate`, { method: "POST" });
     const data = await res.json();
-    setMessage(data.message || "OK");
-    dashboardRef.current?.refetch(); // ?? refresca dashboard
+    showToast(data.message || "OK", "info");
+    dashboardRef.current?.refetch();
+  };
+
+  const handleTrain = async () => {
+    const size = Number.isFinite(windowSize) && windowSize > 0 ? Math.floor(windowSize) : 300;
+    const res = await fetch(`${api}/anomaly/train?window_size=${size}`, { method: "POST" });
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch (_) {
+      // cuerpo no JSON
+    }
+    const success = data?.success !== false;
+    const msg = success
+      ? `Modelo entrenado y guardado`
+      : data?.error || "Error al entrenar";
+    showToast(msg, success ? "info" : "error");
+    if (success) {
+      setModelRefresh((v) => v + 1);
+    }
   };
 
   const handleClear = async () => {
     const res = await fetch(`${api}/v2/clear`, { method: "POST" });
     const data = await res.json();
-    setMessage(data.message || "OK");
-    dashboardRef.current?.refetch(); // ?? refresca dashboard
+    showToast(data.message || "OK", "info");
+    dashboardRef.current?.refetch();
   };
 
   return (
@@ -37,8 +66,8 @@ export default function HomePage() {
           AI-AudioSense
         </h2>
         <p className="mt-4 text-slate-400 max-w-2xl mx-auto">
-          Analiza sonidos industriales para detectar patrones an▌alos en motores,
-          compresores o l》eas de producci▋.
+          Analiza sonidos industriales para detectar patrones anómalos en motores,
+          compresores o líneas de producción.
         </p>
       </section>
 
@@ -55,18 +84,40 @@ export default function HomePage() {
       </div>
 
       {devMode && (
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
+        <div className="flex flex-wrap justify-center gap-3 mb-8 items-center">
           <button onClick={handlePopulate} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg text-white">Poblar 10k</button>
+          <div className="flex items-center gap-2 bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-700">
+            <label className="text-xs text-slate-300">Ventana (muestras)</label>
+            <input
+              type="number"
+              min={10}
+              max={10000}
+              value={windowSize}
+              onChange={(e) => setWindowSize(parseInt(e.target.value || "0", 10))}
+              className="w-20 rounded-md bg-slate-900 border border-slate-600 text-slate-100 px-2 py-1 text-sm focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+          <button onClick={handleTrain} className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-white">Entrenar</button>
           <button onClick={handleClear} className="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white">Borrar</button>
         </div>
       )}
 
-      {message && (
-        <p className="text-sm text-cyan-400 text-center mt-2">{message}</p>
+      {toast && (
+        <div
+          className={`fixed top-6 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-sm shadow-lg border ${
+            toast.type === "error"
+              ? "bg-rose-900/80 border-rose-500/40 text-rose-100"
+              : "bg-slate-800/80 border-cyan-500/40 text-cyan-100"
+          }`}
+        >
+          {toast.text}
+        </div>
       )}
 
+      <ModelStatus api={api} refreshSignal={modelRefresh} />
+
       <section className="mx-auto max-w-3xl px-4 pb-16">
-        <DashboardView ref={dashboardRef} /> {/*  referencia conectada */}
+        <DashboardView ref={dashboardRef} />
         <AudioUploader onResult={setData} />
 
         {data && (

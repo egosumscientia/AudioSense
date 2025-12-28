@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List
 import numpy as np
 
 # Window por defecto (muestras) configurable via entorno
-DEFAULT_WINDOW_SIZE = int(os.getenv("MODEL_WINDOW_SIZE", "60"))
+DEFAULT_WINDOW_SIZE = int(os.getenv("MODEL_WINDOW_SIZE", "300"))
 
 
 def _slope(values: np.ndarray) -> float:

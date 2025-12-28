@@ -41,8 +41,19 @@ def train_model(records: List[Dict], window_size: int) -> Dict:
 
     # Entrena solo con ventanas sin anomalías declaradas (anom_rate == 0)
     clean_rows = [r for r in feature_rows if r.get("anom_rate", 0.0) == 0.0]
+    note = ""
     if not clean_rows:
-        raise RuntimeError("No hay ventanas totalmente normales para entrenar")
+        # Relaja criterio: usa ventanas con tasa de anomalías <=10%
+        clean_rows = [r for r in feature_rows if r.get("anom_rate", 0.0) <= 0.1]
+        note = "Se usaron ventanas con <=10% anomalías por falta de ventanas 100% normales."
+    if not clean_rows:
+        # Último recurso: usa las 25% ventanas con menor anom_rate
+        sorted_rows = sorted(feature_rows, key=lambda r: r.get("anom_rate", 1.0))
+        cutoff = max(1, int(len(sorted_rows) * 0.25))
+        clean_rows = sorted_rows[:cutoff]
+        note = "Se usaron las ventanas con menor tasa de anomalías (fallback)."
+    if not clean_rows:
+        raise RuntimeError("No hay ventanas utilizables para entrenar")
 
     feature_names = [k for k in clean_rows[0].keys() if k != "anom_rate"]
     X_raw = np.asarray([[float(r.get(k, 0.0)) for k in feature_names] for r in clean_rows], dtype=float)
@@ -68,20 +79,24 @@ def train_model(records: List[Dict], window_size: int) -> Dict:
         "window_size": window_size,
         "train_windows": len(clean_rows),
         "train_samples": len(records),
+        "note": note,
     }
 
 
-def main(window_size: int = DEFAULT_WINDOW_SIZE):
+def train_and_save(window_size: int = DEFAULT_WINDOW_SIZE) -> Dict:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-
     with SessionLocal() as session:
         records = fetch_measurements(session)
-
-    if len(records) < window_size:
-        raise RuntimeError(f"Datos insuficientes: {len(records)} muestras, se necesitan >= {window_size}")
-
-    bundle = train_model(records, window_size=window_size)
+    effective_window = min(window_size or DEFAULT_WINDOW_SIZE, len(records))
+    if effective_window < 10:
+        raise RuntimeError(f"Datos insuficientes: {len(records)} muestras, se necesitan >= 10")
+    bundle = train_model(records, window_size=effective_window)
     joblib.dump(bundle, MODEL_PATH)
+    return bundle
+
+
+def main(window_size: int = DEFAULT_WINDOW_SIZE):
+    bundle = train_and_save(window_size=window_size)
     print(f"[train_if] Modelo guardado en {MODEL_PATH} | ventanas entrenadas: {bundle['train_windows']}")
 
 
