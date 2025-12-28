@@ -22,35 +22,38 @@ ANOMALY_RATE = float(os.getenv("SIM_ANOMALY_RATE", "0.05"))  # 5% anomalías
 LOG_EVERY = int(os.getenv("SIM_LOG_EVERY", "1"))  # imprime cada N filas
 
 
-def _sample_measurement() -> Tuple[float, float, str]:
-    """Devuelve (value, frequency, status) simulando condiciones industriales."""
-    if random.random() < ANOMALY_RATE:
-        # Anomalía: amplitud alta o frecuencia inusual
-        value = round(random.uniform(0.85, 1.15), 4)
-        freq = random.randint(3200, 7200)
-        status = "Anomalo"
-    else:
-        # Operación normal: niveles estables en rango típico
-        value = round(random.uniform(0.35, 0.65), 4)
-        # frecuencia fundamental entre 90-480 Hz con ligeras variaciones
-        freq = int(random.gauss(240, 80))
-        freq = max(60, min(freq, 1200))
-        status = "OK"
+from app.utils.data_generator import NORMAL_RANGES, ANOMALY_RANGES
+
+def _sample_measurement() -> Tuple[float, float, str, float, float, list]:
+    """Devuelve (value, frequency, status, snr, flatness, bands) simulando condiciones industriales."""
+    is_anomaly = random.random() < ANOMALY_RATE
+    ranges = ANOMALY_RANGES if is_anomaly else NORMAL_RANGES
+    status = "Anomalo" if is_anomaly else "OK"
+
+    # Usamos distribución gaussiana para mayor realismo
+    mu_amp = sum(ranges["amplitude"]) / 2
+    # Normal: sigma pequeña (estable), Anomalía: sigma mayor (inestabilidad)
+    sigma_amp = (ranges["amplitude"][1] - ranges["amplitude"][0]) / (4 if is_anomaly else 8)
+    
+    mu_freq = sum(ranges["frequency"]) / 2
+    sigma_freq = (ranges["frequency"][1] - ranges["frequency"][0]) / (4 if is_anomaly else 8)
+
+    value = round(max(0.01, random.gauss(mu_amp, sigma_amp)), 4)
+    freq = round(max(20, random.gauss(mu_freq, sigma_freq)), 1)
+
     # Genera métricas derivadas simuladas para enriquecer el dashboard
-    snr = round(20 * (value + 0.1), 2)
-    flatness = round(random.uniform(0.05, 0.35), 3)
+    snr = round(20 * (value + 0.1) + random.uniform(-1, 1), 2)
+    flatness = round(random.uniform(0.05, 0.35) if not is_anomaly else random.uniform(0.3, 0.6), 3)
+    
     bands = [-120.0, -120.0, -120.0, -120.0, -120.0]
     # Marca energía en la banda correspondiente a la frecuencia simulada
-    if freq < 500:
-        bands[0] = round(20 * random.random(), 1)
-    elif freq < 1000:
-        bands[1] = round(20 * random.random(), 1)
-    elif freq < 4000:
-        bands[2] = round(20 * random.random(), 1)
-    elif freq < 8000:
-        bands[3] = round(20 * random.random(), 1)
-    else:
-        bands[4] = round(20 * random.random(), 1)
+    energy = round(20 * (value + random.random()), 1)
+    if freq < 500: bands[0] = energy
+    elif freq < 1000: bands[1] = energy
+    elif freq < 4000: bands[2] = energy
+    elif freq < 8000: bands[3] = energy
+    else: bands[4] = energy
+    
     return value, freq, status, snr, flatness, bands
 
 
