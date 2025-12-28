@@ -36,8 +36,8 @@ const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
         const keys =
           json.length > 0
             ? Object.keys(json[0]).filter(
-                (k) => typeof json[0][k] === "number" && k !== "id"
-              )
+              (k) => typeof json[0][k] === "number" && k !== "id"
+            )
             : [];
         if (selectedMetrics.length === 0 && keys.length > 0) {
           setSelectedMetrics(keys);
@@ -70,8 +70,8 @@ const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
   const numericKeys =
     data.length > 0
       ? Object.keys(data[0]).filter(
-          (k) => typeof data[0][k] === "number" && k !== "id"
-        )
+        (k) => typeof data[0][k] === "number" && k !== "id"
+      )
       : [];
 
   const metricsToShow =

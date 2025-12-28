@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime
+import os
+from pathlib import Path
+
 from app.db import get_db
+from app.utils.model_loader import load_model
+from app.utils.train_if import train_and_save
+from app.utils.features import DEFAULT_WINDOW_SIZE
 
 router = APIRouter(prefix="/v2", tags=["Developer Mode"])
 
@@ -21,53 +26,49 @@ def generate_data(db: Session = Depends(get_db)):
 
 
 @router.post("/train")
-def train_model(db: Session = Depends(get_db)):
-    """Entrena un modelo basico con las mediciones actuales."""
-    from sqlalchemy import text
-
-    result = db.execute(text("SELECT AVG(value), AVG(frequency) FROM measurements")).fetchone()
-    avg_val, avg_freq = result if result else (0, 0)
-
-    db.execute(
-        text("INSERT INTO models (name, mean_value, mean_freq, created_at) VALUES (:n, :v, :f, :ts)"),
-        {"n": "modelo_promedio", "v": avg_val, "f": avg_freq, "ts": datetime.utcnow()},
+def train_model(window_size: int | None = None, threshold_pct: float | None = None):
+    """
+    Entrena y guarda el modelo IsolationForest (fuente única de inferencia).
+    """
+    bundle = train_and_save(
+        window_size=window_size or DEFAULT_WINDOW_SIZE,
+        threshold_pct=threshold_pct,
     )
-    db.commit()
-
-    return {"message": "Modelo entrenado", "mean_value": avg_val, "mean_freq": avg_freq}
+    # recarga en cache por si estaba vacío
+    load_model()
+    return {
+        "message": "Modelo IsolationForest entrenado",
+        "window_size": bundle.get("window_size"),
+        "threshold": bundle.get("threshold"),
+        "threshold_pct": bundle.get("threshold_pct"),
+        "train_windows": bundle.get("train_windows"),
+        "train_samples": bundle.get("train_samples"),
+        "note": bundle.get("note", ""),
+    }
 
 
 @router.post("/update")
-def update_results(db: Session = Depends(get_db)):
-    """Actualiza status en measurements segun el modelo mas reciente."""
-    from sqlalchemy import text
-
-    model = db.execute(
-        text("SELECT mean_value, mean_freq FROM models ORDER BY created_at DESC LIMIT 1")
-    ).fetchone()
-    if not model:
-        return {"message": "No hay modelo entrenado"}
-
-    mean_val, mean_freq = model
-    db.execute(
-        text("""
-        UPDATE measurements
-        SET status = CASE
-            WHEN ABS(value - :v) > 0.2 OR ABS(frequency - :f) > 500 THEN 'Anomalo'
-            ELSE 'OK' END
-        """),
-        {"v": mean_val, "f": mean_freq},
-    )
-    db.commit()
-
-    return {"message": "Resultados actualizados"}
+def update_results():
+    """
+    Ruta mantenida por compatibilidad. El modelo válido es IsolationForest;
+    usa /anomaly/stream para consultar puntaje en tiempo real.
+    """
+    return {
+        "message": "Modelo único: IsolationForest. Usa /anomaly/train para entrenar y /anomaly/stream para puntuar.",
+        "deprecated": True,
+    }
 
 
 @router.post("/clear")
 def clear_database(db: Session = Depends(get_db)):
-    """Limpia tablas measurements y models."""
+    """Limpia tablas measurements y models, y borra el archivo del modelo IF."""
     from sqlalchemy import text
     db.execute(text("DELETE FROM measurements"))
     db.execute(text("DELETE FROM models"))
     db.commit()
-    return {"message": "Tablas limpiadas correctamente"}
+
+    model_path = Path(__file__).resolve().parent.parent / "models_store" / "model_if.pkl"
+    if model_path.exists():
+        os.remove(model_path)
+
+    return {"message": "Datos limpiados y modelo IsolationForest eliminado"}

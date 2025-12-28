@@ -82,9 +82,8 @@ export default function EventTable({ api }: Props) {
           <button
             onClick={() => fetchEvents(1)}
             disabled={loading}
-            className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${
-              loading ? "bg-slate-700 text-slate-300" : "bg-cyan-600 hover:bg-cyan-700 text-white"
-            }`}
+            className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${loading ? "bg-slate-700 text-slate-300" : "bg-cyan-600 hover:bg-cyan-700 text-white"
+              }`}
           >
             {loading ? "Actualizando..." : "Refrescar"}
           </button>

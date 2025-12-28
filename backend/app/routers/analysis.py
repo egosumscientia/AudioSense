@@ -70,6 +70,7 @@ def read_measurements(skip: int = 0, limit: int = 10000, minutes: int | None = N
             amean = sum(window_vals) / len(window_vals)
             gmean = geom_mean(window_vals)
             flat = gmean / amean if amean > 0 else 0.0
+        
         row["snr_db"] = round(snr, 2)
         row["flatness"] = round(flat, 3)
 

@@ -120,11 +120,10 @@ export default function HomePage() {
 
       {toast && (
         <div
-          className={`fixed top-6 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-sm shadow-lg border ${
-            toast.type === "error"
-              ? "bg-rose-900/80 border-rose-500/40 text-rose-100"
-              : "bg-slate-800/80 border-cyan-500/40 text-cyan-100"
-          }`}
+          className={`fixed top-6 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-sm shadow-lg border ${toast.type === "error"
+            ? "bg-rose-900/80 border-rose-500/40 text-rose-100"
+            : "bg-slate-800/80 border-cyan-500/40 text-cyan-100"
+            }`}
         >
           {toast.text}
         </div>
@@ -149,11 +148,10 @@ export default function HomePage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as "dashboard" | "log" | "events")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
-                activeTab === tab.id
-                  ? "bg-cyan-600 border-cyan-500 text-white"
-                  : "bg-slate-800 border-slate-700 text-slate-200 hover:border-cyan-500/60"
-              }`}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${activeTab === tab.id
+                ? "bg-cyan-600 border-cyan-500 text-white"
+                : "bg-slate-800 border-slate-700 text-slate-200 hover:border-cyan-500/60"
+                }`}
             >
               {tab.label}
             </button>

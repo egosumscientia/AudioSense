@@ -9,14 +9,14 @@ Demo/MVP para analisis rapido de audio industrial con IA. Incluye backend FastAP
 - Contenedores opcionales: Docker/Docker Compose (backend, frontend, Postgres).
 
 ## Estructura
-- `backend/app/main.py`: entry FastAPI (`/analyze`), CORS, routers.
+- `backend/app/main.py`: entry FastAPI, CORS, routers.
 - `backend/app/utils/audio_processing.py`: ingestion y metricas (RMS, SNR, flatness, bandas, crest, frecuencia dominante, flag de anomalia).
 - `backend/app/utils/data_generator.py`: datos sinteticos para mediciones y analisis.
 - `backend/app/routers/analysis.py`: `GET /analyses` (dashboard de mediciones).
 - `backend/app/routers/developer.py`: `/v2/generate|train|update|clear` para poblar/entrenar/testear.
 - `backend/app/models.py`: tablas `Analysis`, `Measurement`, `Model`, `Machine`.
-- `frontend/app/page.tsx`: landing + toggle modo dev, dashboard, uploader, charts, result card.
-- `frontend/app/components/*`: `AudioUploader`, `DashboardView`, `ChartView`, `ResultCard`.
+- `frontend/app/page.tsx`: landing + toggle modo dev, dashboard, charts, cards.
+- `frontend/app/components/*`: `DashboardView`, `ChartView`, `ResultCard`.
 - `docker-compose.yml`: orquesta backend, frontend (3001->3000) y Postgres.
 
 ## Como correr en local (sin Docker)
@@ -61,19 +61,19 @@ python -m app.utils.realtime_simulator
 - El dashboard ahora se refresca solo cada 5 s; basta con dejarlo abierto para ver los datos llegar.
 
 ## Endpoints principales
-- `POST /analyze`  
-  - Body: multipart `file` (audio).  
-  - Respuesta: `{rms_db, dominant_freq_hz, confidence_percent, status ("Normal"/"Anomalo"), mensaje, snr_db, flatness, crest_factor, band_levels[], filename}`.
-
 - `GET /analyses`  
   - Query: `skip`, `limit` (por defecto 0/10000).  
   - Devuelve filas de `measurements` para el dashboard (timestamp, rms_db, dominant_freq_hz, status).
 
 - Modo desarrollador (`/v2/*`)  
   - `POST /v2/generate`: inserta 10k mediciones sintéticas.  
-  - `POST /v2/train`: modelo promedio con medias de valor/frecuencia.  
-  - `POST /v2/update`: marca `status` "OK"/"Anomalo" segun desvio del promedio.  
-  - `POST /v2/clear`: limpia `measurements` y `models`.
+  - `POST /v2/train`: entrena y guarda IsolationForest (modelo único).  
+  - `POST /v2/update`: compat, responde que uses `/anomaly/stream`.  
+  - `POST /v2/clear`: limpia `measurements`/`models` y borra `model_if.pkl`.
+
+- Modelado de anomalías (`/anomaly/*`)  
+  - `POST /anomaly/train`: entrena IsolationForest con ventana/percentil opcionales.  
+  - `GET /anomaly/stream`: puntúa la última ventana y entrega estado/score/umbral.
 
 ## Notas de datos/modelo
 - Procesamiento actual: FFT basica, normalizacion, calculo de RMS/SNR/flatness/crest y energia por bandas 0–12 kHz.  
@@ -81,15 +81,13 @@ python -m app.utils.realtime_simulator
 - Generador sintetico: `populate_measurements` produce valores 0–1 (value) y 100–5000 Hz (frequency); status "Anomalo" cuando value > 0.8 o desvio tras update.
 
 ## UI rapida
-- Toggle “Modo desarrollador”: dispara generate/train/update/clear y refresca dashboard.  
+- Toggle "Modo desarrollador": dispara generate/train/update/clear y refresca dashboard.  
 - Dashboard: grafica todas las claves numericas de `GET /analyses`.  
-- Uploader: envia audio al backend y muestra metricas + grafico de bandas.  
-- Alinea el endpoint del uploader con `POST /analyze` (ajusta `AudioUploader` si es necesario).
+- Sin uploader: el dashboard consume solo `measurements` generadas/simuladas.
 
 ## Entornos
 - Desarrollo y produccion: Postgres (local o contenedor) con `DATABASE_URL=postgresql+psycopg://audiouser:audiopwd@localhost:5432/aiaudiosense` (ajusta host si usas Docker).
 
 ## Proximos pasos sugeridos
-- Ajustar `AudioUploader` para apuntar a `/analyze` (o exponer `/analyses/analyze`).  
 - Mejorar textos/UX y agregar validaciones de formato de audio.  
-- Tests basicos de integracion (upload y flujo `/v2/*`), y pipelines de CI simples.
+- Tests basicos de integracion (flujo `/v2/*` y consultas del dashboard), y pipelines de CI simples.
