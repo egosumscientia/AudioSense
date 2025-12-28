@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: ai-audiosense-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app@db:5432/aiaudiosense
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - ai-audiosense-net
+    volumes:
+    - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: ai-audiosense-frontend
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    networks:
+      - ai-audiosense-net
+
+  db:
+    image: postgres:16
+    container_name: ai-audiosense-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: aiaudiosense
+      PGDATA: /var/lib/postgresql/data/pgdata
+    networks:
+      - ai-audiosense-net
+    volumes:
+      - pgdata-ai-audiosense:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d aiaudiosense"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata-ai-audiosense:
+
+networks:
+  ai-audiosense-net:
+    driver: bridge

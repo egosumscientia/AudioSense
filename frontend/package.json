@@ -1,0 +1,25 @@
+{
+  "name": "ai-audiosense",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "next": "14.0.0",
+    "postcss": "^8.5.6",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "recharts": "^2.7.2",
+    "tailwindcss": "^3.4.18"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "typescript": "5.9.3"
+  }
+}

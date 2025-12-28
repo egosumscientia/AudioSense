@@ -1,0 +1,87 @@
+# =======================================
+# General
+# =======================================
+*.log
+*.pyc
+__pycache__/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =======================================
+# Node / Next.js
+# =======================================
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/.vercel/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/package-lock.json
+frontend/.eslintcache
+
+# =======================================
+# Python / FastAPI
+# =======================================
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.env
+backend/.venv/
+backend/venv/
+backend/env/
+backend/.coverage
+backend/coverage.xml
+backend/instance/
+backend/htmlcov/
+
+# =======================================
+# Docker / Build
+# =======================================
+*.pid
+*.seed
+*.bak
+*.tmp
+*.temp
+docker-compose.override.yml
+.env.docker
+.env.production
+.env.development
+
+# =======================================
+# OS / Editor files
+# =======================================
+Thumbs.db
+ehthumbs.db
+*.stackdump
+*.sublime-workspace
+*.sublime-project
+
+# =======================================
+# Python virtual environments (global)
+# =======================================
+venv/
+env/
+.venv/
+ENV/
+
+# =======================================
+# Logs / Cache / Artifacts
+# =======================================
+logs/
+cache/
+tmp/
+*.log
+*.sqlite3
+*.db
