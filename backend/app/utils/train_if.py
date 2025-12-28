@@ -9,8 +9,8 @@ import os
 from pathlib import Path
 from typing import Dict, List
 
-import joblib
 import numpy as np
+import joblib
 from sqlalchemy import text
 
 from app.db import SessionLocal
@@ -34,7 +34,7 @@ def fetch_measurements(session) -> List[Dict]:
     return [dict(r) for r in rows]
 
 
-def train_model(records: List[Dict], window_size: int) -> Dict:
+def train_model(records: List[Dict], window_size: int, threshold_pct: float) -> Dict:
     feature_rows = build_feature_matrix(records, window_size=window_size, include_anom_rate=True)
     if not feature_rows:
         raise RuntimeError(f"No hay suficientes datos para ventana={window_size}")
@@ -68,13 +68,17 @@ def train_model(records: List[Dict], window_size: int) -> Dict:
     )
     model.fit(X)
 
-    scores = model.decision_function(X)
-    threshold = float(np.percentile(scores, 5))  # umbral sensible; ajustable
+    # score_samples: valores más pequeños = más anómalos
+    scores = model.score_samples(X)
+    threshold = float(np.percentile(scores, threshold_pct))
 
     return {
         "model": model,
         "scaler": scaler,
         "threshold": threshold,
+        "threshold_pct": threshold_pct,
+        "score_mean": float(np.mean(scores)),
+        "score_std": float(np.std(scores)),
         "feature_names": feature_names,
         "window_size": window_size,
         "train_windows": len(clean_rows),
@@ -83,20 +87,21 @@ def train_model(records: List[Dict], window_size: int) -> Dict:
     }
 
 
-def train_and_save(window_size: int = DEFAULT_WINDOW_SIZE) -> Dict:
+def train_and_save(window_size: int = DEFAULT_WINDOW_SIZE, threshold_pct: float = None) -> Dict:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    pct = float(threshold_pct) if threshold_pct is not None else float(os.getenv("MODEL_THRESHOLD_PCT", "5"))
     with SessionLocal() as session:
         records = fetch_measurements(session)
     effective_window = min(window_size or DEFAULT_WINDOW_SIZE, len(records))
     if effective_window < 10:
         raise RuntimeError(f"Datos insuficientes: {len(records)} muestras, se necesitan >= 10")
-    bundle = train_model(records, window_size=effective_window)
+    bundle = train_model(records, window_size=effective_window, threshold_pct=pct)
     joblib.dump(bundle, MODEL_PATH)
     return bundle
 
 
-def main(window_size: int = DEFAULT_WINDOW_SIZE):
-    bundle = train_and_save(window_size=window_size)
+def main(window_size: int = DEFAULT_WINDOW_SIZE, threshold_pct: float = None):
+    bundle = train_and_save(window_size=window_size, threshold_pct=threshold_pct)
     print(f"[train_if] Modelo guardado en {MODEL_PATH} | ventanas entrenadas: {bundle['train_windows']}")
 
 

@@ -6,15 +6,18 @@ import ChartView from "./components/ChartView";
 import DashboardView from "./components/DashboardView";
 import ModelStatus from "./components/ModelStatus";
 import LogView from "./components/LogView";
+import KpiBar from "./components/KpiBar";
+import EventTable from "./components/EventTable";
 
 export default function HomePage() {
   const [data, setData] = useState<any>(null);
   const [devMode, setDevMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "log">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "log" | "events">("dashboard");
   const [toast, setToast] = useState<{ text: string; type?: "info" | "error" } | null>(null);
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
   const [modelRefresh, setModelRefresh] = useState(0);
   const [windowSize, setWindowSize] = useState<number>(300);
+  const [thresholdPct, setThresholdPct] = useState<number>(5);
   const [modelThreshold, setModelThreshold] = useState<number | null>(null);
   const dashboardRef = useRef<any>(null);
 
@@ -35,7 +38,8 @@ export default function HomePage() {
 
   const handleTrain = async () => {
     const size = Number.isFinite(windowSize) && windowSize > 0 ? Math.floor(windowSize) : 300;
-    const res = await fetch(`${api}/anomaly/train?window_size=${size}`, { method: "POST" });
+    const pct = Number.isFinite(thresholdPct) && thresholdPct > 0 ? thresholdPct : 5;
+    const res = await fetch(`${api}/anomaly/train?window_size=${size}&threshold_pct=${pct}`, { method: "POST" });
     let data: any = null;
     try {
       data = await res.json();
@@ -100,6 +104,18 @@ export default function HomePage() {
               className="w-20 rounded-md bg-slate-900 border border-slate-600 text-slate-100 px-2 py-1 text-sm focus:outline-none focus:border-cyan-500"
             />
           </div>
+          <div className="flex items-center gap-2 bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-700">
+            <label className="text-xs text-slate-300">Sensibilidad (percentil)</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              step={1}
+              value={thresholdPct}
+              onChange={(e) => setThresholdPct(parseFloat(e.target.value || "5"))}
+              className="w-20 rounded-md bg-slate-900 border border-slate-600 text-slate-100 px-2 py-1 text-sm focus:outline-none focus:border-cyan-500"
+            />
+          </div>
           <button onClick={handleTrain} className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-white">Entrenar</button>
           <button onClick={handleClear} className="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white">Borrar</button>
         </div>
@@ -118,6 +134,10 @@ export default function HomePage() {
       )}
 
       <div className="mx-auto max-w-5xl px-4">
+        <KpiBar api={api} />
+      </div>
+
+      <div className="mx-auto max-w-5xl px-4">
         <ModelStatus api={api} refreshSignal={modelRefresh} onThreshold={setModelThreshold} />
       </div>
 
@@ -126,10 +146,11 @@ export default function HomePage() {
           {[
             { id: "dashboard", label: "Dashboard" },
             { id: "log", label: "Log en vivo" },
+            { id: "events", label: "Eventos" },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as "dashboard" | "log")}
+              onClick={() => setActiveTab(tab.id as "dashboard" | "log" | "events")}
               className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
                 activeTab === tab.id
                   ? "bg-cyan-600 border-cyan-500 text-white"
@@ -144,8 +165,10 @@ export default function HomePage() {
         <div className="space-y-6">
           {activeTab === "dashboard" ? (
             <DashboardView ref={dashboardRef} threshold={modelThreshold ?? undefined} />
-          ) : (
+          ) : activeTab === "log" ? (
             <LogView api={api} />
+          ) : (
+            <EventTable api={api} />
           )}
 
           <AudioUploader onResult={setData} />

@@ -20,12 +20,15 @@ def analyze_stream(db: Session = Depends(get_db)):
 
 
 @router.post("/train")
-def train_model(window_size: int = None):
+def train_model(window_size: int = None, threshold_pct: float | None = None):
     """
     Entrena y guarda el modelo IsolationForest con las muestras actuales.
     """
     try:
-        bundle = train_and_save(window_size=window_size or DEFAULT_WINDOW_SIZE)
+        bundle = train_and_save(
+            window_size=window_size or DEFAULT_WINDOW_SIZE,
+            threshold_pct=threshold_pct,
+        )
         # recarga modelo en cache
         model_loader.load_model()
         return {
@@ -33,6 +36,9 @@ def train_model(window_size: int = None):
             "message": "Modelo entrenado y guardado",
             "window_size": bundle.get("window_size"),
             "threshold": bundle.get("threshold"),
+            "threshold_pct": bundle.get("threshold_pct"),
+            "score_mean": bundle.get("score_mean"),
+            "score_std": bundle.get("score_std"),
             "train_windows": bundle.get("train_windows"),
             "train_samples": bundle.get("train_samples"),
             "note": bundle.get("note", ""),

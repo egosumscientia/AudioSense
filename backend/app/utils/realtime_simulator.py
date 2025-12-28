@@ -36,7 +36,22 @@ def _sample_measurement() -> Tuple[float, float, str]:
         freq = int(random.gauss(240, 80))
         freq = max(60, min(freq, 1200))
         status = "OK"
-    return value, freq, status
+    # Genera métricas derivadas simuladas para enriquecer el dashboard
+    snr = round(20 * (value + 0.1), 2)
+    flatness = round(random.uniform(0.05, 0.35), 3)
+    bands = [-120.0, -120.0, -120.0, -120.0, -120.0]
+    # Marca energía en la banda correspondiente a la frecuencia simulada
+    if freq < 500:
+        bands[0] = round(20 * random.random(), 1)
+    elif freq < 1000:
+        bands[1] = round(20 * random.random(), 1)
+    elif freq < 4000:
+        bands[2] = round(20 * random.random(), 1)
+    elif freq < 8000:
+        bands[3] = round(20 * random.random(), 1)
+    else:
+        bands[4] = round(20 * random.random(), 1)
+    return value, freq, status, snr, flatness, bands
 
 
 def _ensure_space(db):
@@ -62,7 +77,7 @@ def run_forever():
                 reset = _ensure_space(db)
                 if reset:
                     print("[sim] Tabla measurements alcanzó el límite; limpiada y reiniciada.")
-                value, freq, status = _sample_measurement()
+                value, freq, status, snr, flatness, bands = _sample_measurement()
                 db.execute(
                     text(
                         """

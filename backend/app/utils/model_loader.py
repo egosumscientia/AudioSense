@@ -73,14 +73,24 @@ def score_recent_window(session: Optional[Session] = None) -> Dict:
     feats = compute_window_features(records)
     feature_vector = ensure_feature_vector(feats, model_bundle["feature_names"])
     X = model_bundle["scaler"].transform(feature_vector)
-    score = float(model_bundle["model"].decision_function(X)[0])
+    # score_samples: valores m s pequeños = m s anómalos (consistente con threshold entrenado)
+    score = float(model_bundle["model"].score_samples(X)[0])
     threshold = float(model_bundle["threshold"])
     is_anomaly = score < threshold
+    margin = score - threshold
+    mean = float(model_bundle.get("score_mean", 0.0))
+    std = float(model_bundle.get("score_std", 1.0)) or 1.0
+    z_score = (score - mean) / std
 
     return {
         "status": "Anomalo" if is_anomaly else "OK",
         "anomaly_score": score,
         "threshold": threshold,
+        "margin": margin,
+        "score_mean": mean,
+        "score_std": std,
+        "z_score": z_score,
+        "threshold_pct": model_bundle.get("threshold_pct"),
         "window_size": window_size,
         "detail": None,
     }
