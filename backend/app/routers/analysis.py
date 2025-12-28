@@ -136,9 +136,12 @@ def kpis(db: Session = Depends(get_db)):
     - total de muestras en BD
     - tasa de ingesta (muestras/min en ventana reciente)
     """
-    now = datetime.utcnow()
+    # Obtenemos la hora de referencia (la última medición o ahora si está vacío)
+    ref_query = db.execute(text("SELECT MAX(timestamp) FROM measurements")).scalar()
+    reference_time = ref_query if ref_query else datetime.utcnow()
+    
     window_minutes = 60
-    t_window = now - timedelta(minutes=window_minutes)
+    t_window = reference_time - timedelta(minutes=window_minutes)
 
     last_row = db.execute(
         text(
