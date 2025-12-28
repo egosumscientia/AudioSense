@@ -23,7 +23,7 @@ const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
   const fetchData = async (limit?: number) => {
     setLoading(true);
     try {
-      const qLimit = typeof limit === "number" ? limit : 100;
+      const qLimit = typeof limit === "number" ? limit : 300;
       const res = await fetch(`${api}/analyses?skip=0&limit=${qLimit}&_t=${Date.now()}`, { cache: "no-store" });
       const json = await res.json();
       if (Array.isArray(json)) {
@@ -38,13 +38,20 @@ const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
 
   useEffect(() => {
     fetchData();
-    const id = setInterval(() => fetchData(), 60000); // auto refresh cada 60s
+    const id = setInterval(() => fetchData(), 5000); // auto refresh cada 5s
     return () => clearInterval(id);
   }, []);
 
   useImperativeHandle(ref, () => ({
     refetch: fetchData,
   }));
+
+  const formatTs = (ts?: string) => {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return ts;
+    return d.toLocaleTimeString();
+  };
 
   const numericKeys =
     data.length > 0
@@ -72,7 +79,11 @@ const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={displayData}>
                     <CartesianGrid strokeOpacity={0.15} vertical={false} />
-                    <XAxis dataKey="timestamp" tick={{ fill: "#cbd5e1", fontSize: 10 }} />
+                    <XAxis
+                      dataKey="timestamp"
+                      tick={{ fill: "#cbd5e1", fontSize: 10 }}
+                      tickFormatter={formatTs}
+                    />
                     <YAxis tick={{ fill: "#cbd5e1", fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{
@@ -80,7 +91,7 @@ const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
                         border: "1px solid #334155",
                         color: "#e2e8f0",
                       }}
-                      labelFormatter={(v) => `timestamp: ${v}`}
+                      labelFormatter={(v) => `timestamp: ${formatTs(String(v))}`}
                       formatter={(value, name, props) => [
                         (value as number).toFixed(2),
                         props?.payload?.status ? `${key} (${props.payload.status})` : key,

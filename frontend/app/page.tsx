@@ -5,10 +5,12 @@ import ResultCard from "./components/ResultCard";
 import ChartView from "./components/ChartView";
 import DashboardView from "./components/DashboardView";
 import ModelStatus from "./components/ModelStatus";
+import LogView from "./components/LogView";
 
 export default function HomePage() {
   const [data, setData] = useState<any>(null);
   const [devMode, setDevMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<"dashboard" | "log">("dashboard");
   const [toast, setToast] = useState<{ text: string; type?: "info" | "error" } | null>(null);
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
   const [modelRefresh, setModelRefresh] = useState(0);
@@ -119,9 +121,35 @@ export default function HomePage() {
         <ModelStatus api={api} refreshSignal={modelRefresh} onThreshold={setModelThreshold} />
       </div>
 
-      <section className="mx-auto max-w-5xl px-4 pb-16">
-        <DashboardView ref={dashboardRef} threshold={modelThreshold ?? undefined} />
-        <AudioUploader onResult={setData} />
+      <section className="mx-auto max-w-5xl px-4 pb-16 space-y-8">
+        <div className="flex gap-2">
+          {[
+            { id: "dashboard", label: "Dashboard" },
+            { id: "log", label: "Log en vivo" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as "dashboard" | "log")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                activeTab === tab.id
+                  ? "bg-cyan-600 border-cyan-500 text-white"
+                  : "bg-slate-800 border-slate-700 text-slate-200 hover:border-cyan-500/60"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-6">
+          {activeTab === "dashboard" ? (
+            <DashboardView ref={dashboardRef} threshold={modelThreshold ?? undefined} />
+          ) : (
+            <LogView api={api} />
+          )}
+
+          <AudioUploader onResult={setData} />
+        </div>
 
         {data && (
           <div className="mt-10 space-y-8">
