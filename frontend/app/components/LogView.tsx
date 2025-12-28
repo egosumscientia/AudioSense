@@ -77,7 +77,7 @@ export default function LogView({ api, pollMs = 5000 }: Props) {
 
       <div
         ref={containerRef}
-        className="h-80 overflow-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs font-mono text-slate-200"
+        className="h-[520px] overflow-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs font-mono text-slate-200"
       >
         {logs.length === 0 && !loading ? (
           <p className="text-slate-500">Sin datos.</p>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Event = {
   timestamp?: string;
@@ -27,20 +27,30 @@ export default function EventTable({ api }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const pageRef = useRef(1);
   const [total, setTotal] = useState(0);
+  const [pageInput, setPageInput] = useState("1");
   const perPage = 15;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
 
-  const fetchEvents = async (targetPage = page) => {
+  const fetchEvents = async (targetPage?: number) => {
     setLoading(true);
     setError(null);
+    const nextPage = targetPage ?? pageRef.current;
     try {
-      const res = await fetch(`${api}/analyses/events?minutes=1440&page=${targetPage}&per_page=${perPage}&_t=${Date.now()}`, { cache: "no-store" });
+      const res = await fetch(
+        `${api}/analyses/events?minutes=1440&page=${nextPage}&per_page=${perPage}&_t=${Date.now()}`,
+        { cache: "no-store" }
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (Array.isArray(json?.items)) {
         setRows(json.items);
         setTotal(typeof json.total === "number" ? json.total : 0);
-        setPage(typeof json.page === "number" ? json.page : targetPage);
+        const resolvedPage = typeof json.page === "number" ? json.page : nextPage;
+        pageRef.current = resolvedPage;
+        setPage(resolvedPage);
+        setPageInput(String(resolvedPage));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
@@ -50,9 +60,16 @@ export default function EventTable({ api }: Props) {
     }
   };
 
+  const goToPage = (target?: number) => {
+    const parsed = target ?? Number(pageInput);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.max(1, Math.min(totalPages, Math.floor(parsed)));
+    fetchEvents(clamped);
+  };
+
   useEffect(() => {
-    fetchEvents(1);
-    const id = setInterval(() => fetchEvents(1), 5000);
+    fetchEvents(pageRef.current);
+    const id = setInterval(() => fetchEvents(pageRef.current), 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -65,7 +82,7 @@ export default function EventTable({ api }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fetchEvents(Math.max(1, page - 1))}
+            onClick={() => fetchEvents(Math.max(1, pageRef.current - 1))}
             disabled={loading || page <= 1}
             className="px-3 py-1 rounded-lg text-sm font-semibold transition bg-slate-800 text-slate-200 border border-slate-700 disabled:opacity-50"
           >
@@ -73,20 +90,32 @@ export default function EventTable({ api }: Props) {
           </button>
           <span className="text-xs text-slate-400">Página {page}</span>
           <button
-            onClick={() => fetchEvents(page + 1)}
+            onClick={() => fetchEvents(pageRef.current + 1)}
             disabled={loading || page * perPage >= total}
             className="px-3 py-1 rounded-lg text-sm font-semibold transition bg-slate-800 text-slate-200 border border-slate-700 disabled:opacity-50"
           >
             ▶
           </button>
-          <button
-            onClick={() => fetchEvents(1)}
-            disabled={loading}
-            className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${loading ? "bg-slate-700 text-slate-300" : "bg-cyan-600 hover:bg-cyan-700 text-white"
-              }`}
-          >
-            {loading ? "Actualizando..." : "Refrescar"}
-          </button>
+          <div className="flex items-center gap-2 bg-slate-800/40 border border-slate-700 px-2 py-1 rounded-lg">
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={pageInput}
+              onChange={(e) => setPageInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") goToPage();
+              }}
+              className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              onClick={() => goToPage()}
+              disabled={loading}
+              className="px-2 py-1 rounded-md text-xs font-semibold transition bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-50"
+            >
+              Ir
+            </button>
+          </div>
         </div>
       </div>
 

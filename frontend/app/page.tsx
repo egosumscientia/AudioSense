@@ -64,11 +64,8 @@ export default function HomePage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100">
       <section className="mx-auto max-w-5xl px-4 py-12 text-center">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-cyan-300">
-          Demos de Inteligencia Artificial
+          AudioSense
         </h1>
-        <h2 className="text-2xl md:text-3xl text-cyan-400 mt-2 font-semibold">
-          AI-AudioSense
-        </h2>
         <p className="mt-4 text-slate-400 max-w-2xl mx-auto">
           Analiza sonidos industriales para detectar patrones anómalos en motores,
           compresores o líneas de producción.
