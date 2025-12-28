@@ -8,3 +8,5 @@ soundfile
 numpy
 librosa
 python-multipart
+scikit-learn
+joblib

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.routers import analysis, developer
+from app.routers import analysis, developer, anomaly
 import uvicorn
 
 app = FastAPI(title="AudioSense API")
@@ -17,6 +17,7 @@ app.add_middleware(
 
 app.include_router(analysis.router)
 app.include_router(developer.router)
+app.include_router(anomaly.router)
 
 @app.get("/")
 def health():

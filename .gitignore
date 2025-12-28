@@ -45,6 +45,7 @@ backend/.coverage
 backend/coverage.xml
 backend/instance/
 backend/htmlcov/
+backend/app/models_store/
 
 # =======================================
 # Docker / Build
