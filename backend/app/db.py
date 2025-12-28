@@ -8,9 +8,14 @@ class Base(DeclarativeBase):
 
 load_dotenv()  # lee las variables del archivo .env
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Si no hay DATABASE_URL, usamos SQLite local para desarrollo rápido
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dev.db")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine_kwargs = {"pool_pre_ping": True}
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 def get_db():

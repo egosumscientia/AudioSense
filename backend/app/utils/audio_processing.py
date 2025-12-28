@@ -14,19 +14,18 @@ async def analyze_audio(file):
         y, sr = librosa.load(tmp_path, sr=None)
         y = librosa.util.normalize(y)
 
-        # FFT básica
+        # FFT basica
         spectrum = np.abs(np.fft.rfft(y))
         freqs = np.fft.rfftfreq(len(y), 1 / sr)
         dominant_freq = float(freqs[np.argmax(spectrum)])
 
-        # Métricas simples
+        # Metricas simples
         rms = float(np.mean(librosa.feature.rms(y=y)))
-        snr = float(10 * np.log10(np.mean(y**2) /
-                    (np.mean((y - np.mean(y))**2) + 1e-10)))
+        snr = float(10 * np.log10(np.mean(y**2) / (np.mean((y - np.mean(y))**2) + 1e-10)))
         flatness = float(np.mean(librosa.feature.spectral_flatness(y=y)))
         crest = float(np.max(np.abs(y)) / np.sqrt(np.mean(y**2)))
 
-        # Energía por banda (dB)
+        # Energia por banda (dB)
         bands = [0, 500, 1000, 4000, 8000, 12000]
         band_levels = []
         for i in range(len(bands) - 1):
@@ -37,10 +36,10 @@ async def analyze_audio(file):
             else:
                 band_levels.append(-120.0)
 
-        # Regla simple de anomalía
+        # Regla simple de anomalia
         anomaly = dominant_freq > 8500 or flatness > 0.3
-        estado = "Anómalo" if anomaly else "Normal"
-        mensaje = "⚠️ Vibración anómala detectada" if anomaly else "✅ Sin anomalías detectadas"
+        estado = "Anomalo" if anomaly else "Normal"
+        mensaje = "Vibracion anomala detectada" if anomaly else "Sin anomalias detectadas"
         confianza = 85.0 if anomaly else 95.0
 
         # Devolver resultado con solo tipos nativos de Python

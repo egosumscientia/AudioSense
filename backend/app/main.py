@@ -4,7 +4,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.routers import analysis, developer
 import uvicorn
 
-app = FastAPI(title="AI-AudioSense API")
+app = FastAPI(title="AudioSense API")
 
 origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
 app.add_middleware(
@@ -17,6 +17,7 @@ app.add_middleware(
 
 app.include_router(analysis.router)
 app.include_router(developer.router)
+
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):

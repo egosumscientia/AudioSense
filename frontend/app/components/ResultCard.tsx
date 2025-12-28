@@ -28,7 +28,7 @@ export default function ResultCard({ data }: Props) {
     filename = "",
   } = data || {};
 
-  const isAnomaly = status.toLowerCase().includes("anóm");
+  const isAnomaly = status.toLowerCase().includes("anom");
   const badgeTone = isAnomaly
     ? "bg-amber-400/10 text-amber-300 border-amber-400/30"
     : "bg-emerald-400/10 text-emerald-300 border-emerald-400/30";
