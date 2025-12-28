@@ -13,6 +13,7 @@ export default function HomePage() {
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
   const [modelRefresh, setModelRefresh] = useState(0);
   const [windowSize, setWindowSize] = useState<number>(300);
+  const [modelThreshold, setModelThreshold] = useState<number | null>(null);
   const dashboardRef = useRef<any>(null);
 
   const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -58,7 +59,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100">
-      <section className="mx-auto max-w-4xl px-4 py-12 text-center">
+      <section className="mx-auto max-w-5xl px-4 py-12 text-center">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-cyan-300">
           Demos de Inteligencia Artificial
         </h1>
@@ -114,10 +115,12 @@ export default function HomePage() {
         </div>
       )}
 
-      <ModelStatus api={api} refreshSignal={modelRefresh} />
+      <div className="mx-auto max-w-5xl px-4">
+        <ModelStatus api={api} refreshSignal={modelRefresh} onThreshold={setModelThreshold} />
+      </div>
 
-      <section className="mx-auto max-w-3xl px-4 pb-16">
-        <DashboardView ref={dashboardRef} />
+      <section className="mx-auto max-w-5xl px-4 pb-16">
+        <DashboardView ref={dashboardRef} threshold={modelThreshold ?? undefined} />
         <AudioUploader onResult={setData} />
 
         {data && (

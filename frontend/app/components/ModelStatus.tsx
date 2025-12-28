@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 type ModelStatusProps = {
   api: string;
   refreshSignal?: number;
+  onThreshold?: (value: number | null) => void;
 };
 
 type AnomalyResponse = {
@@ -14,7 +15,7 @@ type AnomalyResponse = {
   detail?: string | null;
 };
 
-export default function ModelStatus({ api, refreshSignal }: ModelStatusProps) {
+export default function ModelStatus({ api, refreshSignal, onThreshold }: ModelStatusProps) {
   const [data, setData] = useState<AnomalyResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +31,14 @@ export default function ModelStatus({ api, refreshSignal }: ModelStatusProps) {
       }
       const json = await res.json();
       setData(json);
+      if (typeof json?.threshold === "number" && onThreshold) {
+        onThreshold(json.threshold);
+      }
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
       setError(msg);
+      if (onThreshold) onThreshold(null);
     } finally {
       setLoading(false);
     }
@@ -55,7 +60,7 @@ export default function ModelStatus({ api, refreshSignal }: ModelStatusProps) {
     data?.status?.toLowerCase().includes("anom") ? "bg-amber-500/20 text-amber-200 border-amber-500/40" : "bg-emerald-500/15 text-emerald-200 border-emerald-500/30";
 
   return (
-    <section className="mx-auto w-full max-w-3xl mb-6 rounded-2xl border border-slate-700/60 bg-slate-900/50 p-4 shadow-lg">
+    <section className="w-full mb-6 rounded-2xl border border-slate-700/60 bg-slate-900/50 p-4 shadow-lg">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="space-y-1">
           <p className="text-sm text-slate-300 font-semibold">Estado del modelo (IsolationForest)</p>

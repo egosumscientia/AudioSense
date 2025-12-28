@@ -1,19 +1,29 @@
 "use client";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 
-const DashboardView = forwardRef((props, ref) => {
+type DashboardProps = {
+  threshold?: number;
+};
+
+const DashboardView = forwardRef(({ threshold }: DashboardProps, ref) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const fetchData = async (limit?: number) => {
     setLoading(true);
     try {
-      const qLimit = typeof limit === "number" ? limit : showAll ? 100000 : 100;
+      const qLimit = typeof limit === "number" ? limit : 100;
       const res = await fetch(`${api}/analyses?skip=0&limit=${qLimit}&_t=${Date.now()}`, { cache: "no-store" });
       const json = await res.json();
       if (Array.isArray(json)) {
@@ -30,7 +40,7 @@ const DashboardView = forwardRef((props, ref) => {
     fetchData();
     const id = setInterval(() => fetchData(), 60000); // auto refresh cada 60s
     return () => clearInterval(id);
-  }, [showAll]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     refetch: fetchData,
@@ -43,35 +53,12 @@ const DashboardView = forwardRef((props, ref) => {
         )
       : [];
 
-  const displayData = showAll ? data : data.slice(-100);
+  const displayData = data.slice(-100);
 
   return (
     <section className="mx-auto w-full max-w-5xl mb-12 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-cyan-300">Dashboard histórico</h2>
-        <div className="flex gap-3">
-          <button
-            onClick={async () => {
-              const next = !showAll;
-              setShowAll(next);
-              await fetchData(next ? 100000 : 100);
-            }}
-            className="px-3 py-1 rounded-lg border border-slate-600 text-sm text-slate-300 hover:border-cyan-400 hover:text-cyan-300"
-          >
-            {showAll ? "Ver últimos 100" : "Ver todos"}
-          </button>
-          <button
-            onClick={() => fetchData()}
-            disabled={loading}
-            className={`px-3 py-1 rounded-lg text-sm ${
-                loading
-                ? "bg-cyan-600/50 text-white animate-pulse"
-                : "bg-cyan-600 hover:bg-cyan-700 text-white"
-            }`}
-            >
-            {loading ? "Actualizando..." : "Actualizar"}
-            </button>
-        </div>
       </div>
 
       {data.length === 0 ? (
@@ -118,6 +105,7 @@ const DashboardView = forwardRef((props, ref) => {
                         );
                       }}
                     />
+                    {/* Umbral eliminado a pedido del usuario */}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
