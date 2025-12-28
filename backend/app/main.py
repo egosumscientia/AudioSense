@@ -18,6 +18,9 @@ app.add_middleware(
 app.include_router(analysis.router)
 app.include_router(developer.router)
 
+@app.get("/")
+def health():
+    return {"status": "ok"}
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
@@ -28,7 +31,7 @@ async def analyze(file: UploadFile = File(...)):
         return result
     except Exception as e:
         import traceback
-        print("🔥 Error en /analyze:", e)
+        print("?? Error en /analyze:", e)
         traceback.print_exc()
         return {"error": str(e)}
 

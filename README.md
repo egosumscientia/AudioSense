@@ -1,10 +1,10 @@
 # AI-AudioSense
 
-Demo/MVP para analisis rapido de audio industrial con IA. Incluye backend FastAPI con procesamiento (librosa/NumPy) y frontend Next.js 14 con graficos en Recharts. Corre sobre PostgreSQL (audiosense / audiouser / audiopwd) y puede orquestarse con Docker cuando haga falta.
+Demo/MVP para analisis rapido de audio industrial con IA. Incluye backend FastAPI con procesamiento (librosa/NumPy) y frontend Next.js 14 con graficos en Recharts. Corre sobre PostgreSQL (aiaudiosense / audiouser / audiopwd) y puede orquestarse con Docker cuando haga falta.
 
 ## Stack
 - Backend: Python 3.10, FastAPI, SQLAlchemy, librosa, NumPy.
-- Base de datos: Postgres (via `DATABASE_URL`), BD `audiosense` usuario `audiouser` pwd `audiopwd`.
+- Base de datos: Postgres (via `DATABASE_URL`), BD `aiaudiosense` usuario `audiouser` pwd `audiopwd`.
 - Frontend: Next.js 14 (React 18), TailwindCSS, Recharts.
 - Contenedores opcionales: Docker/Docker Compose (backend, frontend, Postgres).
 
@@ -27,7 +27,7 @@ python -m venv .venv
 source .venv/bin/activate  # en Windows: .\.venv\Scripts\activate
 pip install -r requirements.txt
 # configura tu Postgres local:
-echo DATABASE_URL=postgresql+psycopg://audiouser:audiopwd@localhost:5432/audiosense > .env
+echo DATABASE_URL=postgresql+psycopg://audiouser:audiopwd@localhost:5432/aiaudiosense > .env
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -74,7 +74,7 @@ docker-compose up --build
 - Alinea el endpoint del uploader con `POST /analyze` (ajusta `AudioUploader` si es necesario).
 
 ## Entornos
-- Desarrollo y produccion: Postgres (local o contenedor) con `DATABASE_URL=postgresql+psycopg://audiouser:audiopwd@localhost:5432/audiosense` (ajusta host si usas Docker).
+- Desarrollo y produccion: Postgres (local o contenedor) con `DATABASE_URL=postgresql+psycopg://audiouser:audiopwd@localhost:5432/aiaudiosense` (ajusta host si usas Docker).
 
 ## Proximos pasos sugeridos
 - Ajustar `AudioUploader` para apuntar a `/analyze` (o exponer `/analyses/analyze`).  

@@ -11,7 +11,7 @@ load_dotenv()  # lee las variables del archivo .env
 # Default a Postgres local si no se define DATABASE_URL en entorno
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://audiouser:audiopwd@localhost:5432/audiosense",
+    "postgresql+psycopg://audiouser:audiopwd@localhost:5432/aiaudiosense",
 )
 
 engine_kwargs = {"pool_pre_ping": True}
