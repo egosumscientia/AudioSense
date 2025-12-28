@@ -24,7 +24,7 @@ Demo/MVP para analisis rapido de audio industrial con IA. Incluye backend FastAP
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # en Windows: .\.venv\Scripts\activate
+source .venv/bin/activate  # en Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 # configura tu Postgres local:
 echo DATABASE_URL=postgresql+psycopg://audiouser:audiopwd@localhost:5432/aiaudiosense > .env
@@ -46,6 +46,19 @@ docker-compose up --build
 # backend: http://localhost:8000
 # frontend: http://localhost:3001
 ```
+
+## Simulador de datos en tiempo real
+- Corre un generador de mediciones cada 5 s (cupo 10 000 filas, luego limpia y reinicia):
+```bash
+cd backend
+# activa el entorno virtual si no lo hiciste:
+#   PowerShell: .\.venv\Scripts\Activate.ps1
+#   bash: source .venv/bin/activate
+# instala deps si falta psycopg: pip install -r requirements.txt
+python -m app.utils.realtime_simulator
+```
+- Variables opcionales: `SIM_INTERVAL_SECONDS` (segundos entre muestras), `SIM_ANOMALY_RATE` (0-1). Ejemplo: `SIM_INTERVAL_SECONDS=2 SIM_ANOMALY_RATE=0.1 python -m app.utils.realtime_simulator`.
+- El dashboard ahora se refresca solo cada 5 s; basta con dejarlo abierto para ver los datos llegar.
 
 ## Endpoints principales
 - `POST /analyze`  

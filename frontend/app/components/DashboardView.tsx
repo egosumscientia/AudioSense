@@ -26,7 +26,11 @@ const DashboardView = forwardRef((props, ref) => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    const id = setInterval(() => fetchData(), 5000); // auto refresh cada 5s
+    return () => clearInterval(id);
+  }, [showAll]);
 
   useImperativeHandle(ref, () => ({
     refetch: fetchData,
