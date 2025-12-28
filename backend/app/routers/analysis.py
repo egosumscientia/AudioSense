@@ -132,12 +132,12 @@ def kpis(db: Session = Depends(get_db)):
     """
     KPIs r pidos para cabecera del dashboard.
     - última medici¢n (value/frequency/status/timestamp)
-    - % anomalias ộltimos 5 minutos
+    - % anomalias en ventana reciente (60 min)
     - total de muestras en BD
-    - tasa de ingesta (muestras/min en ộltimos 5 min)
+    - tasa de ingesta (muestras/min en ventana reciente)
     """
     now = datetime.utcnow()
-    window_minutes = 5
+    window_minutes = 60
     t_window = now - timedelta(minutes=window_minutes)
 
     last_row = db.execute(
@@ -152,50 +152,70 @@ def kpis(db: Session = Depends(get_db)):
     ).mappings().first()
 
     total_count = db.execute(text("SELECT COUNT(*) FROM measurements")).scalar() or 0
-    count_10m = db.execute(
+    count_window = db.execute(
         text("SELECT COUNT(*) FROM measurements WHERE timestamp >= :t_window"),
         {"t_window": t_window},
     ).scalar() or 0
-    anomalies_10m = db.execute(
+    anomalies_window = db.execute(
         text("SELECT COUNT(*) FROM measurements WHERE timestamp >= :t_window AND LOWER(status) LIKE 'anom%'"),
         {"t_window": t_window},
     ).scalar() or 0
 
-    anomalies_percent = (anomalies_10m / count_10m * 100) if count_10m else 0.0
-    ingest_rate = count_10m / window_minutes  # muestras por minuto (últimos 5 min)
+    last_anomaly = db.execute(
+        text("SELECT timestamp FROM measurements WHERE LOWER(status) LIKE 'anom%' ORDER BY timestamp DESC LIMIT 1")
+    ).scalar()
+
+    anomalies_percent = (anomalies_window / count_window * 100) if count_window else 0.0
+    ingest_rate = count_window / window_minutes if window_minutes else 0.0
 
     return {
         "last_timestamp": last_row.get("timestamp") if last_row else None,
         "last_value": last_row.get("value") if last_row else None,
         "last_frequency": last_row.get("frequency") if last_row else None,
         "last_status": last_row.get("status") if last_row else None,
-        "anomalies_percent_5m": anomalies_percent,
+        "anomalies_percent_window": anomalies_percent,
         "total_measurements": total_count,
         "ingest_rate_per_min": ingest_rate,
         "window_minutes": window_minutes,
+        "last_anomaly_ts": last_anomaly,
     }
 
 
 @router.get("/events")
-def recent_anomalies(limit: int = 20, db: Session = Depends(get_db)):
+def recent_anomalies(
+    limit: int | None = None,
+    minutes: int = 1440,
+    page: int = 1,
+    per_page: int = 15,
+    db: Session = Depends(get_db),
+):
     """
-    Lista cronol·gica de ¥ltimas anomalªas con puntaje del modelo (si existe).
+    Lista cronol·gica de anomalªas con puntaje del modelo (si existe).
+    Por defecto trae las ỳltimas 24h (1440 min). Usa limit opcional para acotar.
     """
     model_bundle = model_loader.get_model()
 
-    # Tomamos anomal¤as por status (si no hay modelo igual devolvemos valor/freq)
+    params = {"minutes": minutes, "limit": limit or per_page, "offset": max(page - 1, 0) * per_page}
+    where_clause = "WHERE LOWER(status) LIKE 'anom%' AND timestamp >= (NOW() - (:minutes || ' minutes')::interval)"
+    limit_clause = "LIMIT :limit OFFSET :offset"
+
+    total = db.execute(
+        text(f"SELECT COUNT(*) FROM measurements {where_clause}"),
+        {"minutes": minutes},
+    ).scalar() or 0
+
     raw_rows = (
         db.execute(
             text(
-                """
+                f"""
                 SELECT timestamp, value, frequency, status
                 FROM measurements
-                WHERE LOWER(status) LIKE 'anom%'
+                {where_clause}
                 ORDER BY timestamp DESC
-                LIMIT :limit
+                {limit_clause}
                 """
             ),
-            {"limit": limit},
+            params,
         )
         .mappings()
         .all()
@@ -254,5 +274,9 @@ def recent_anomalies(limit: int = 20, db: Session = Depends(get_db)):
             }
         )
 
-    # devolver en orden cronol·gico ascendente
-    return list(reversed(events))
+    return {
+        "items": events,  # ordenadas desc por timestamp
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+    }

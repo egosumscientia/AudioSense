@@ -26,15 +26,22 @@ export default function EventTable({ api }: Props) {
   const [rows, setRows] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const perPage = 15;
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${api}/analyses/events?_t=${Date.now()}`, { cache: "no-store" });
+      const res = await fetch(`${api}/analyses/events?minutes=1440&page=${targetPage}&per_page=${perPage}&_t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      if (Array.isArray(json)) setRows(json);
+      if (Array.isArray(json?.items)) {
+        setRows(json.items);
+        setTotal(typeof json.total === "number" ? json.total : 0);
+        setPage(typeof json.page === "number" ? json.page : targetPage);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
       setError(msg);
@@ -44,8 +51,8 @@ export default function EventTable({ api }: Props) {
   };
 
   useEffect(() => {
-    fetchEvents();
-    const id = setInterval(fetchEvents, 10000);
+    fetchEvents(1);
+    const id = setInterval(() => fetchEvents(1), 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -54,17 +61,34 @@ export default function EventTable({ api }: Props) {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-lg font-semibold text-cyan-300">Últimas anomalías</h3>
-          <p className="text-xs text-slate-400">Lista cronológica (máx 20)</p>
+          <p className="text-xs text-slate-400">Lista cronológica (últimas 24h)</p>
         </div>
-        <button
-          onClick={fetchEvents}
-          disabled={loading}
-          className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${
-            loading ? "bg-slate-700 text-slate-300" : "bg-cyan-600 hover:bg-cyan-700 text-white"
-          }`}
-        >
-          {loading ? "Actualizando..." : "Refrescar"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchEvents(Math.max(1, page - 1))}
+            disabled={loading || page <= 1}
+            className="px-3 py-1 rounded-lg text-sm font-semibold transition bg-slate-800 text-slate-200 border border-slate-700 disabled:opacity-50"
+          >
+            ◀
+          </button>
+          <span className="text-xs text-slate-400">Página {page}</span>
+          <button
+            onClick={() => fetchEvents(page + 1)}
+            disabled={loading || page * perPage >= total}
+            className="px-3 py-1 rounded-lg text-sm font-semibold transition bg-slate-800 text-slate-200 border border-slate-700 disabled:opacity-50"
+          >
+            ▶
+          </button>
+          <button
+            onClick={() => fetchEvents(1)}
+            disabled={loading}
+            className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${
+              loading ? "bg-slate-700 text-slate-300" : "bg-cyan-600 hover:bg-cyan-700 text-white"
+            }`}
+          >
+            {loading ? "Actualizando..." : "Refrescar"}
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-xs text-rose-300 mb-2">Error: {error}</p>}

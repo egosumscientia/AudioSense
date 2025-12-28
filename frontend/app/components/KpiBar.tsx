@@ -6,10 +6,11 @@ type Kpis = {
   last_value?: number;
   last_frequency?: number;
   last_status?: string;
-  anomalies_percent_5m?: number;
+  anomalies_percent_window?: number;
   total_measurements?: number;
   ingest_rate_per_min?: number;
   window_minutes?: number;
+  last_anomaly_ts?: string;
 };
 
 type Props = {
@@ -59,15 +60,17 @@ export default function KpiBar({ api }: Props) {
           ? `${data.last_frequency} Hz · ${data?.last_status ?? "-"}`
           : data?.last_status ?? "-",
       foot: `Hora: ${formatTime(data?.last_timestamp)}`,
+      tooltip: "Valor/frecuencia de la última muestra registrada.",
     },
     {
-      title: "Anomalías (5 min)",
+      title: "Anomalías",
       value:
-        data?.anomalies_percent_5m != null
-          ? `${data.anomalies_percent_5m.toFixed(1)}%`
+        data?.anomalies_percent_window != null
+          ? `${data.anomalies_percent_window.toFixed(1)}%`
           : "N/D",
-      subtitle: "",
-      foot: `Porcentaje últimos ${data?.window_minutes ?? 5} min`,
+      subtitle: data?.last_anomaly_ts ? `Última anom: ${formatTime(data.last_anomaly_ts)}` : "",
+      foot: `Porcentaje últimos ${data?.window_minutes ?? 60} min`,
+      tooltip: "Porcentaje de muestras marcadas como anómalas en la ventana reciente.",
     },
     {
       title: "Muestras totales",
@@ -77,6 +80,7 @@ export default function KpiBar({ api }: Props) {
           : "N/D",
       subtitle: "",
       foot: "En la base de datos",
+      tooltip: "Cantidad total de filas en measurements.",
     },
     {
       title: "Tasa de ingesta",
@@ -86,6 +90,7 @@ export default function KpiBar({ api }: Props) {
           : "N/D",
       subtitle: "",
       foot: `Calculada últimos ${data?.window_minutes ?? 5} min`,
+      tooltip: "Muestras por minuto estimadas en la ventana reciente.",
     },
   ];
 
@@ -96,9 +101,19 @@ export default function KpiBar({ api }: Props) {
         {cards.map((card) => (
           <div
             key={card.title}
-            className="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4 shadow-md"
+            className="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4 shadow-md relative group"
           >
-            <p className="text-xs uppercase tracking-wide text-slate-400">{card.title}</p>
+            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
+              {card.title}
+              <span className="relative inline-flex items-center justify-center h-4 w-4 rounded-full bg-slate-800 text-cyan-200 text-[10px] font-bold">
+                i
+                <span className="absolute left-1/2 -translate-x-1/2 top-5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  <span className="block max-w-xs rounded-lg bg-slate-900 text-slate-100 border border-cyan-500/40 px-3 py-2 text-[11px] shadow-lg">
+                    {card.tooltip}
+                  </span>
+                </span>
+              </span>
+            </p>
             <p className="text-2xl font-bold text-cyan-300 mt-1">
               {loading && !data ? "..." : card.value}
             </p>

@@ -97,7 +97,9 @@ export default function ModelStatus({ api, refreshSignal, onThreshold }: ModelSt
       {typeof data?.anomaly_score === "number" && (
         <div className="mt-3">
           <div className="flex justify-between text-xs text-slate-400 mb-1">
-            <span>Puntaje vs umbral</span>
+            <span title="score_samples del IsolationForest; si score < umbral ⇒ anómalo">
+              Puntaje vs umbral
+            </span>
             <span className="text-slate-200 font-semibold">
               {data.anomaly_score.toFixed(4)} · thr {data.threshold?.toFixed(4) ?? "N/D"}
             </span>

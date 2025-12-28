@@ -1,16 +1,13 @@
 "use client";
 import { useState, useRef } from "react";
-import AudioUploader from "./components/AudioUploader";
-import ResultCard from "./components/ResultCard";
-import ChartView from "./components/ChartView";
 import DashboardView from "./components/DashboardView";
 import ModelStatus from "./components/ModelStatus";
 import LogView from "./components/LogView";
 import KpiBar from "./components/KpiBar";
 import EventTable from "./components/EventTable";
+import StreamingIndicator from "./components/StreamingIndicator";
 
 export default function HomePage() {
-  const [data, setData] = useState<any>(null);
   const [devMode, setDevMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "log" | "events">("dashboard");
   const [toast, setToast] = useState<{ text: string; type?: "info" | "error" } | null>(null);
@@ -137,7 +134,8 @@ export default function HomePage() {
         <KpiBar api={api} />
       </div>
 
-      <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto max-w-5xl px-4 space-y-2 mb-6">
+        <StreamingIndicator api={api} />
         <ModelStatus api={api} refreshSignal={modelRefresh} onThreshold={setModelThreshold} />
       </div>
 
@@ -170,16 +168,7 @@ export default function HomePage() {
           ) : (
             <EventTable api={api} />
           )}
-
-          <AudioUploader onResult={setData} />
         </div>
-
-        {data && (
-          <div className="mt-10 space-y-8">
-            <ChartView levels={data.band_levels} />
-            <ResultCard data={data} />
-          </div>
-        )}
       </section>
     </main>
   );

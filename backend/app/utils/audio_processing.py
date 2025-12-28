@@ -36,22 +36,43 @@ async def analyze_audio(file):
             else:
                 band_levels.append(-120.0)
 
-        # Regla simple de anomalia
-        anomaly = dominant_freq > 8500 or flatness > 0.3
+        # Regla simple de anomalía (heurística endurecida)
+        rms_db = round(rms * 100, 1)
+        snr_db = round(snr, 2)
+        flatness_r = round(flatness, 3)
+        crest_r = round(crest, 2)
+        dominant_hz = int(dominant_freq)
+
+        reasons = []
+        if dominant_hz < 50:
+            reasons.append("frecuencia demasiado baja")
+        if dominant_hz > 8500:
+            reasons.append("frecuencia demasiado alta")
+        if flatness_r > 0.25:
+            reasons.append("flatness alta")
+        # SNR bajo solo si además hay nivel muy bajo
+        if snr_db < -3 and rms_db < 10:
+            reasons.append("SNR muy bajo")
+        if rms_db < 1 or rms_db > 90:
+            reasons.append("nivel RMS fuera de rango")
+        if crest_r > 6:
+            reasons.append("crest factor alto")
+
+        anomaly = len(reasons) > 0
         estado = "Anomalo" if anomaly else "Normal"
-        mensaje = "Vibracion anomala detectada" if anomaly else "Sin anomalias detectadas"
-        confianza = 85.0 if anomaly else 95.0
+        mensaje = "; ".join(reasons) if anomaly else "Sin anomalias detectadas"
+        confianza = 80.0 if anomaly else 95.0
 
         # Devolver resultado con solo tipos nativos de Python
         return {
-            "rms_db": round(rms * 100, 1),
-            "dominant_freq_hz": int(dominant_freq),
+            "rms_db": rms_db,
+            "dominant_freq_hz": dominant_hz,
             "confidence_percent": float(confianza),
             "status": estado,
             "mensaje": mensaje,
-            "snr_db": round(snr, 2),
-            "flatness": round(flatness, 3),
-            "crest_factor": round(crest, 2),
+            "snr_db": snr_db,
+            "flatness": flatness_r,
+            "crest_factor": crest_r,
             "band_levels": [float(x) for x in band_levels],
             "filename": file.filename,
         }

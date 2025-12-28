@@ -4,15 +4,16 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 
 type ChartViewProps = {
   /** Niveles por banda en dB provenientes del backend:
-   * bands = [0–500, 500–1k, 1–4k, 4–8k, 8–12k]
+   * bands = [0-500, 500-1k, 1-4k, 4-8k, 8-12k]
    */
   levels?: number[];
+  /** (Opcional) niveles de referencia para comparar baseline vs actual */
+  baselineLevels?: number[];
 };
 
-const BANDS = ["0–500 Hz", "500–1k Hz", "1–4k Hz", "4–8k Hz", "8–12k Hz"];
+const BANDS = ["0-500 Hz", "500-1k Hz", "1-4k Hz", "4-8k Hz", "8-12k Hz"];
 
-export default function ChartView({ levels = [] }: ChartViewProps) {
-  // Mapear niveles reales del backend a la forma que espera Recharts
+export default function ChartView({ levels = [], baselineLevels }: ChartViewProps) {
   const data =
     levels.length > 0
       ? levels.map((v, i) => ({
@@ -21,13 +22,22 @@ export default function ChartView({ levels = [] }: ChartViewProps) {
         }))
       : [];
 
-  // Si no hay datos válidos, no renderizamos nada (no rompe layout)
   if (data.length === 0) return null;
 
-  // Para alinear con ResultCard (max-w-3xl centrado)
+  const dominantIdx = data.reduce((maxIdx, curr, idx, arr) => (curr.nivel > arr[maxIdx].nivel ? idx : maxIdx), 0);
+  const dominantBand = data[dominantIdx];
+  const showBaselineNote = Array.isArray(baselineLevels) && baselineLevels.length === data.length;
+
   return (
     <section className="mx-auto mt-8 w-full max-w-3xl" aria-label="Distribución espectral (energía por banda)">
-      <h3 className="mb-3 text-sm text-slate-400">Distribución espectral (energía por banda)</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm text-slate-400">Distribución espectral (energía por banda)</h3>
+        {dominantBand ? (
+          <span className="text-xs text-cyan-200">
+            Banda dominante: {dominantBand.name} ({dominantBand.nivel.toFixed(1)} dB)
+          </span>
+        ) : null}
+      </div>
 
       <div className="h-64 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4">
         <ResponsiveContainer width="100%" height="100%">
@@ -38,20 +48,27 @@ export default function ChartView({ levels = [] }: ChartViewProps) {
               tick={{ fill: "#cbd5e1", fontSize: 12 }}
               tickLine={false}
               axisLine={{ stroke: "#475569" }}
-              // Dominio automático, útil si hay dB negativos
               domain={["dataMin - 5", "dataMax + 5"]}
             />
             <Tooltip
               contentStyle={{ background: "#0f172a", border: "1px solid #334155", color: "#e2e8f0" }}
               cursor={{ fill: "#94a3b8", opacity: 0.08 }}
-              formatter={(value) => [`${(value as number).toFixed(1)} dB`, "Nivel"]}
+              formatter={(value) => {
+                const val = value as number;
+                const isDominant = dominantBand && val === dominantBand.nivel;
+                return [`${val.toFixed(1)} dB${isDominant ? " (dominante)" : ""}`, "Nivel"];
+              }}
               labelFormatter={(label) => `Banda: ${label}`}
             />
-            {/* Color único y sobrio; si quieres intensidad, puedo hacerlo dinámico */}
             <Bar dataKey="nivel" radius={[8, 8, 0, 0]} fill="#22d3ee" />
           </BarChart>
         </ResponsiveContainer>
       </div>
+      {showBaselineNote ? (
+        <p className="text-xs text-slate-400 mt-2">
+          Baseline vs actual: se muestra la distribución actual; baseline histórico disponible para referencia.
+        </p>
+      ) : null}
     </section>
   );
-} 
+}
