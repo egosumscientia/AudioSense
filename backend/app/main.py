@@ -24,10 +24,10 @@ def health():
     return {"status": "ok"}
 
 @app.post("/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), machine_type: str = "generic"):
     try:
         from app.utils.audio_processing import analyze_audio
-        result = await analyze_audio(file)
+        result = await analyze_audio(file, machine_type=machine_type)
         result["filename"] = file.filename
         return result
     except Exception as e:
