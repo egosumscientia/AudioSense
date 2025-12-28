@@ -4,27 +4,52 @@ import { useState } from "react";
 export default function AudioUploader({ onResult }: any) {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateFile = (file: File) => {
+    if (!file.type?.startsWith("audio/")) {
+      setError("Sube solo archivos de audio (wav, mp3, etc).");
+      return false;
+    }
+    const maxSizeMb = 20;
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      setError(`Archivo demasiado grande. Máximo ${maxSizeMb} MB.`);
+      return false;
+    }
+    return true;
+  };
 
   const analyzeFile = async (file: File) => {
+    if (!validateFile(file)) return;
     const formData = new FormData();
     formData.append("file", file);
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://backend:8000"}/analyses/analyze`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/analyze`,
         {
           method: "POST",
           body: formData,
         }
       );
 
-      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+      if (!res.ok) {
+        const maybeJson = await res.json().catch(() => null);
+        const message =
+          maybeJson?.error ||
+          maybeJson?.detail ||
+          `Error ${res.status}: ${res.statusText}`;
+        throw new Error(message);
+      }
 
       const data = await res.json();
       onResult(data);
     } catch (err) {
       console.error("Error al analizar el archivo:", err);
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -33,6 +58,7 @@ export default function AudioUploader({ onResult }: any) {
   const handleFile = async (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!validateFile(file)) return;
     setSelectedFile(file);
     await analyzeFile(file);
   };
@@ -58,10 +84,10 @@ export default function AudioUploader({ onResult }: any) {
       onDrop={(e) => {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
-        if (file) {
-          setSelectedFile(file);
-          analyzeFile(file);
-        }
+        if (!file) return;
+        if (!validateFile(file)) return;
+        setSelectedFile(file);
+        analyzeFile(file);
       }}
     >
       <input
@@ -109,6 +135,10 @@ export default function AudioUploader({ onResult }: any) {
     >
       {loading ? "Analizando..." : "Analizar"}
     </button>
+
+    {error && (
+      <p className="mt-3 text-sm text-rose-300 text-center">{error}</p>
+    )}
 
     {selectedFile && !loading && (
           <p className="text-xs text-slate-400 mt-2 text-center italic">
